@@ -1,69 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Smart Image Gallery</title>
+  <title>Smart AI Image Gallery</title>
 
   <!-- ✅ Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- ✅ Custom script -->
-  <script defer src="script.js"></script>
+  <style>
+    .img-card {
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      transition: transform .2s;
+    }
+
+    .img-card:hover {
+      transform: scale(1.02);
+    }
+
+    .photo {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      background: #eee;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
 
-  <!-- MAIN WRAPPER -->
-  <div class="flex min-h-screen">
+<body class="bg-gray-100 min-h-screen flex">
 
-    <!-- ✅ SIDEBAR -->
-    <aside class="w-64 bg-white shadow-lg p-4">
-      <h2 class="text-xl font-bold mb-4">Albums</h2>
+  <!-- ✅ LEFT SIDEBAR -->
+  <aside class="w-72 bg-white shadow-lg p-6 space-y-4">
+    <h2 class="text-2xl font-semibold">Albums</h2>
 
-      <!-- Album dropdown -->
-      <select id="albumSelect" class="w-full border rounded px-2 py-2 mb-4">
-        <option>default</option>
-      </select>
+    <!-- Album selector -->
+    <select id="albumSelector" onchange="loadAlbum(this.value)"
+      class="w-full border rounded px-3 py-2 bg-gray-50">
+    </select>
 
-      <!-- Create new album -->
-      <input
-        id="newAlbum"
-        type="text"
-        class="w-full border rounded px-2 py-2 mb-3"
-        placeholder="New album name"
-      />
+    <!-- Create new Album -->
+    <input id="newAlbum" type="text" placeholder="New album name"
+      class="w-full border rounded px-3 py-2" />
 
-      <!-- Upload -->
-      <input type="file" id="fileInput" class="mb-3" />
+    <button onclick="createAlbum()"
+      class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded">
+      + Create Album
+    </button>
 
-      <button
-        id="uploadBtn"
-        class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
-      >
+    <!-- Upload Content -->
+    <div class="space-y-2">
+      <input id="fileInput" type="file" class="w-full" />
+
+      <button onclick="uploadImage()"
+        class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded shadow">
         Upload Image
       </button>
+    </div>
 
-      <hr class="my-5">
+    <p class="text-gray-500 text-sm">
+      Choose an album, upload images, and AI will automatically tag & caption them.
+    </p>
+  </aside>
 
-      <p class="text-sm text-gray-600">
-        Select or create albums and upload images. Photos get AI tags automatically.
-      </p>
-    </aside>
+  <!-- ✅ MAIN CONTENT -->
+  <main class="flex-1 p-8">
+    <h1 class="text-4xl font-bold mb-6 text-center">Smart AI Gallery</h1>
 
-    <!-- ✅ MAIN VIEW -->
-    <main class="flex-1 p-8">
+    <!-- Image Gallery -->
+    <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Cards inserted via JavaScript -->
+    </div>
+  </main>
 
-      <h1 class="text-3xl font-bold mb-6">Smart Gallery</h1>
-
-      <!-- ✅ Gallery grid -->
-      <div
-        id="gallery"
-        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
-      ></div>
-
-    </main>
-
-  </div>
+  <!-- ✅ SCRIPT FILE -->
+  <script src="script.js"></script>
 
 </body>
+
 </html>
