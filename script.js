@@ -5,6 +5,7 @@ const containerName = "images";
 
 const ANALYZE_URL = "https://gallery-func-app-a8btegakewhnhddg.centralindia-01.azurewebsites.net/api/analyze?code=pu_k1BNWsJhXL7L2HYCCrenRn1cOdUhRcFpByLcRNt-eAzFuC0FioQ==";
 const IMAGES_URL  = "https://gallery-func-app-a8btegakewhnhddg.centralindia-01.azurewebsites.net/api/images?code=hCjbKkSNaExERwr7z5WH9udG-TGdVzU4Up4ugNixNmjIAzFuh7NXZg==";
+const DELETE_URL = "https://gallery-func-app-a8btegakewhnhddg.centralindia-01.azurewebsites.net/api/delete?code=fZqmLof9XYSBprkrEMHTcSlD8xo1cFYFA1Ku7YNfxEn_AzFu_9gKIw==";
 
 
 // =================== UI ELEMENTS ===================
@@ -83,6 +84,27 @@ async function uploadImage() {
 
     alert("Added + Tagged ✅");
     loadAlbum();
+}
+async function deleteImage(album, name) {
+  if (!confirm("Delete this image?")) return;
+
+  try {
+    const res = await fetch(DELETE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ album, name })
+    });
+
+    const json = await res.json();
+    console.log("Delete →", json);
+
+    // reload album after success
+    loadAlbum(album);
+
+  } catch (e) {
+    console.error("Delete error", e);
+    alert("Failed to delete image");
+  }
 }
 
 
