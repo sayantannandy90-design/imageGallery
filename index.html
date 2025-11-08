@@ -1,51 +1,96 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Azure Image Gallery</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Azure Photo Gallery</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    /* Background overlay with gradient */
     body {
-      font-family: Arial;
-      padding: 20px;
+      background: linear-gradient(135deg, #e0f2fe, #fef9c3);
+      min-height: 100vh;
+      background-attachment: fixed;
     }
-    .gallery img {
-      width: 200px;
-      margin: 10px;
-      border-radius: 8px;
-      box-shadow: 0 0 6px #888;
-      display: block;
+    .fade-in {
+      animation: fadein 0.4s ease-in;
     }
-    .item {
-      display: inline-block;
-      text-align: center;
-      margin: 10px;
-    }
-    button {
-      margin-top: 8px;
+    @keyframes fadein {
+      from { opacity: 0; transform: scale(0.98); }
+      to { opacity: 1; transform: scale(1); }
     }
   </style>
 </head>
-<body>
 
-  <h1>Azure Image Gallery</h1>
+<body class="text-gray-800">
 
-  <!-- Choose album -->
-  <label>Select Album:</label>
-  <select id="albumSelect">
-    <option value="nature">Nature</option>
-    <option value="travel">Travel</option>
-    <option value="events">Events</option>
-  </select>
+  <div class="flex flex-col md:flex-row h-screen">
 
-  <br><br>
+    <!-- Sidebar -->
+    <div class="md:w-64 w-full bg-white/80 backdrop-blur-md shadow-lg p-4 overflow-y-auto border-r border-gray-300">
+      <h2 class="text-2xl font-extrabold mb-4 text-blue-700">Albums</h2>
 
-  <!-- Upload input -->
-  <input type="file" id="fileInput" accept="image/*" />
-  <button onclick="uploadImage()">Upload</button>
+      <div id="albumList" class="space-y-2"></div>
 
-  <h2>Gallery</h2>
-  <div id="gallery" class="gallery"></div>
+      <button onclick="openCreateAlbum()"
+        class="mt-6 w-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white py-2 rounded-lg hover:opacity-90 transition">
+        + Create Album
+      </button>
+    </div>
+
+
+    <!-- Main content -->
+    <div class="flex-1 p-6 overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h1 id="albumTitle" class="text-3xl font-extrabold text-blue-600 drop-shadow">Gallery</h1>
+
+        <div>
+          <input type="file" id="fileInput" accept="image/*" class="mr-2 border rounded px-2 py-1" />
+          <button onclick="uploadImage()"
+            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+            Upload
+          </button>
+        </div>
+      </div>
+
+      <!-- Gallery Grid -->
+      <div id="gallery"
+           class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 fade-in"></div>
+    </div>
+  </div>
+
+
+  <!-- Create Album Modal -->
+  <div id="albumModal"
+       class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-xl shadow-2xl w-80">
+      <h2 class="text-xl font-bold mb-3">Create New Album</h2>
+
+      <input id="newAlbumName"
+             placeholder="Album name"
+             class="w-full border px-3 py-2 rounded mb-4 focus:ring focus:ring-blue-200" />
+
+      <div class="flex justify-end space-x-3">
+        <button onclick="closeCreateAlbum()"
+                class="px-4 py-1 border rounded">Cancel</button>
+
+        <button onclick="createAlbum()"
+                class="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Preview Modal -->
+  <div id="previewModal"
+       class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+    <div class="relative">
+      <img id="previewImg" class="max-h-[90vh] rounded-lg shadow-2xl" />
+      <button onclick="closePreview()"
+              class="absolute top-3 right-3 text-white text-3xl font-bold hover:text-red-400">×</button>
+    </div>
+  </div>
 
   <script src="script.js"></script>
-
 </body>
 </html>
+
