@@ -9,107 +9,140 @@ const DELETE_URL = "https://gallery-func-app-a8btegakewhnhddg.centralindia-01.az
 
 
 // =================== UI ELEMENTS ===================
-const albumSelect = document.getElementById("albumSelect");
+const albumSelect = document.getElementById("albumSelector");
 const gallery = document.getElementById("gallery");
 const fileInput = document.getElementById("fileInput");
-const uploadBtn = document.getElementById("uploadBtn");
 const newAlbumInput = document.getElementById("newAlbum");
 
 
-// =================== LOAD IMAGES ===================
-async function loadAlbum() {
-    const album = albumSelect.value;
-    gallery.innerHTML = `<p>Loading...</p>`;
+// =================== LOAD ALBUM IMAGES ===================
+async function loadAlbum(album) {
+  if (!album) album = albumSelect.value;
 
-    const res = await fetch(`${IMAGES_URL}&album=${album}`);
-    const data = await res.json();
+  gallery.innerHTML = `<p class="text-gray-500">Loading...</p>`;
 
-    gallery.innerHTML = "";
+  const res = await fetch(`${IMAGES_URL}&album=${album}`);
+  const data = await res.json();
 
-    if (!data.length) {
-        gallery.innerHTML = `<p>No images in this album.</p>`;
-        return;
-    }
+  gallery.innerHTML = "";
 
-    data.forEach(item => {
-        const div = document.createElement("div");
-        div.className = "imgItem";
-        div.innerHTML = `
-            <img src="${item.url}" />
-            <p>${item.caption || ""}</p>
-            <p><small>${(item.tags || []).join(", ")}</small></p>
-        `;
-        gallery.appendChild(div);
-    });
+  if (!data.length) {
+    gallery.innerHTML = `<p class="text-gray-400 text-center">No images in this album.</p>`;
+    return;
+  }
+
+  renderGallery(data);
+}
+
+
+// =================== RENDER IMAGES ===================
+function renderGallery(images) {
+  gallery.innerHTML = "";
+
+  images.forEach(img => {
+    const card = document.createElement("div");
+    card.className = "img-card";
+
+    card.innerHTML = `
+      <img src="${img.url}" class="photo"/>
+
+      <div class="p-4">
+        <p class="font-semibold text-gray-800 mb-1">
+          ${img.caption || "No caption"}
+        </p>
+
+        <p class="text-xs text-gray-500 mb-3">
+          ${(img.tags || []).join(", ")}
+        </p>
+
+        <button 
+          class="bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-1 rounded"
+          onclick="deleteImage('${img.album}', '${img.name}')">
+          Delete
+        </button>
+      </div>
+    `;
+
+    gallery.appendChild(card);
+  });
+}
+
+
+// =================== CREATE ALBUM ===================
+function createAlbum() {
+  let album = newAlbumInput.value.trim();
+  if (!album) return alert("Enter album name");
+
+  let opt = document.createElement("option");
+  opt.value = album;
+  opt.textContent = album;
+
+  albumSelect.appendChild(opt);
+  albumSelect.value = album;
+  newAlbumInput.value = "";
+
+  loadAlbum(album);
 }
 
 
 // =================== UPLOAD IMAGE ===================
 async function uploadImage() {
-    const file = fileInput.files[0];
-    let album = albumSelect.value;
+  const file = fileInput.files[0];
+  let album = albumSelect.value;
 
-    if (!file) return alert("Select a file!");
+  if (!file) return alert("Select a file!");
 
-    // If user wants new album
-    if (newAlbumInput.value.trim()) {
-        album = newAlbumInput.value.trim();
-        let opt = document.createElement("option");
-        opt.value = album;
-        opt.textContent = album;
-        albumSelect.appendChild(opt);
-        albumSelect.value = album;
-    }
+  if (newAlbumInput.value.trim()) {
+    album = newAlbumInput.value.trim();
+    let opt = document.createElement("option");
+    opt.value = album;
+    opt.textContent = album;
+    albumSelect.appendChild(opt);
+    albumSelect.value = album;
+  }
 
-    const blobName = `${file.name}`;
-    const uploadUrl = `${blobUrl}/${containerName}/${album}/${blobName}?${sasToken}`;
+  const blobName = file.name;
+  const uploadUrl = `${blobUrl}/${containerName}/${album}/${blobName}?${sasToken}`;
 
-    console.log("Uploading →", uploadUrl);
+  const res = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "x-ms-blob-type": "BlockBlob" },
+    body: file
+  });
 
-    const res = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "x-ms-blob-type": "BlockBlob" },
-        body: file
-    });
+  if (!res.ok) return alert("Upload failed!");
 
-    if (!res.ok) return alert("Upload failed!");
+  alert("Uploaded ✅ — AI analyzing...");
 
-    alert("Uploaded ✅ — AI analyzing...");
+  await fetch(ANALYZE_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ album, name: blobName })
+  });
 
-    await fetch(ANALYZE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ album, name: blobName })
-    });
-
-    alert("Added + Tagged ✅");
-    loadAlbum();
+  alert("Tagged + Stored ✅");
+  loadAlbum(album);
 }
+
+
+// =================== DELETE IMAGE ===================
 async function deleteImage(album, name) {
   if (!confirm("Delete this image?")) return;
 
-  try {
-    const res = await fetch(DELETE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ album, name })
-    });
+  const res = await fetch(DELETE_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ album, name })
+  });
 
-    const json = await res.json();
-    console.log("Delete →", json);
+  const json = await res.json();
+  console.log(json);
 
-    // reload album after success
-    loadAlbum(album);
-
-  } catch (e) {
-    console.error("Delete error", e);
-    alert("Failed to delete image");
-  }
+  loadAlbum(album);
 }
 
 
 // =================== INIT ===================
-uploadBtn.onclick = uploadImage;
-albumSelect.onchange = loadAlbum;
-
+albumSelect.onchange = () => loadAlbum(albumSelect.value);
 loadAlbum();
+
