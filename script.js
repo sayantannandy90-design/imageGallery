@@ -1,195 +1,93 @@
-// === Configuration ===
+// =================== CONFIG ===================
 const blobUrl = "https://imagestorage87.blob.core.windows.net";
 const sasToken = "sv=2024-11-04&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2025-11-15T14:30:27Z&st=2025-11-08T06:15:27Z&spr=https&sig=3KnRcUnONtjasDTwmv8Zp5HomsTxWETzi1MuGf1Y2Y4%3D";
 const containerName = "images";
 
-let albums = [];
-let currentAlbum = null;
+const ANALYZE_URL = "https://gallery-func-app-a8btegakewhnhddg.centralindia-01.azurewebsites.net/api/analyze?code=pu_k1BNWsJhXL7L2HYCCrenRn1cOdUhRcFpByLcRNt-eAzFuC0FioQ==";
+const IMAGES_URL  = "https://gallery-func-app-a8btegakewhnhddg.centralindia-01.azurewebsites.net/api/images?code=hCjbKkSNaExERwr7z5WH9udG-TGdVzU4Up4ugNixNmjIAzFuh7NXZg==";
 
 
-// === Load Albums ===
-async function loadAlbums() {
-  try {
-    const listUrl = `${blobUrl}/${containerName}?restype=container&comp=list&${sasToken}`;
-    const res = await fetch(listUrl);
-    const xml = await res.text();
-
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xml, "text/xml");
-    const blobs = xmlDoc.getElementsByTagName("Name");
-
-    const set = new Set();
-    for (let i = 0; i < blobs.length; i++) {
-      const name = blobs[i].textContent;
-      const folder = name.split("/")[0];
-      if (folder) set.add(folder);
-    }
-    albums = Array.from(set);
-    renderAlbumList();
-  } catch (err) {
-    console.error("Error loading albums:", err);
-  }
-}
+// =================== UI ELEMENTS ===================
+const albumSelect = document.getElementById("albumSelect");
+const gallery = document.getElementById("gallery");
+const fileInput = document.getElementById("fileInput");
+const uploadBtn = document.getElementById("uploadBtn");
+const newAlbumInput = document.getElementById("newAlbum");
 
 
-// === Render Album Sidebar ===
-function renderAlbumList() {
-  const div = document.getElementById("albumList");
-  div.innerHTML = "";
+// =================== LOAD IMAGES ===================
+async function loadAlbum() {
+    const album = albumSelect.value;
+    gallery.innerHTML = `<p>Loading...</p>`;
 
-  albums.forEach(a => {
-    const btn = document.createElement("button");
-    btn.textContent = a;
-    btn.className =
-      "block w-full text-left px-3 py-2 rounded-lg hover:bg-blue-50 transition " +
-      (a === currentAlbum ? "bg-blue-200 font-semibold" : "");
-    btn.onclick = () => {
-      currentAlbum = a;
-      document.getElementById("albumTitle").textContent = a;
-      loadImages();
-    };
-    div.appendChild(btn);
-  });
-}
+    const res = await fetch(`${IMAGES_URL}&album=${album}`);
+    const data = await res.json();
 
-
-// === Create Album ===
-function createAlbum() {
-  const name = document.getElementById("newAlbumName").value.trim();
-  if (!name) return alert("Enter an album name");
-
-  const uploadUrl = `${blobUrl}/${containerName}/${name}/.keep?${sasToken}`;
-
-  fetch(uploadUrl, {
-    method: "PUT",
-    headers: { "x-ms-blob-type": "BlockBlob" },
-    body: ""
-  }).then(() => {
-    closeCreateAlbum();
-    loadAlbums();
-  });
-}
-
-function openCreateAlbum() {
-  document.getElementById("albumModal").classList.remove("hidden");
-  document.getElementById("newAlbumName").focus();
-}
-
-function closeCreateAlbum() {
-  document.getElementById("albumModal").classList.add("hidden");
-}
-
-
-// === Load Images ===
-async function loadImages() {
-  if (!currentAlbum) {
-    document.getElementById("gallery").innerHTML =
-      "<p class='text-gray-500 italic'>Select an album to view images</p>";
-    return;
-  }
-
-  try {
-    const listUrl = `${blobUrl}/${containerName}?restype=container&comp=list&${sasToken}`;
-    const res = await fetch(listUrl);
-    const xml = await res.text();
-
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xml, "text/xml");
-    const blobs = xmlDoc.getElementsByTagName("Name");
-
-    const gallery = document.getElementById("gallery");
     gallery.innerHTML = "";
 
-    for (let i = 0; i < blobs.length; i++) {
-      const name = blobs[i].textContent;
-      if (!name.startsWith(currentAlbum + "/")) continue;
-      if (!name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) continue;
-
-      const url = `${blobUrl}/${containerName}/${name}?${sasToken}`;
-
-      const card = document.createElement("div");
-      card.className =
-        "bg-white rounded-xl overflow-hidden shadow hover:shadow-lg transform hover:scale-[1.02] transition cursor-pointer fade-in";
-
-      const img = document.createElement("img");
-      img.src = url;
-      img.className = "w-full h-40 object-cover";
-      img.onclick = () => openPreview(url);
-
-      const footer = document.createElement("div");
-      footer.className = "p-2 flex justify-between items-center";
-
-      const nameSpan = document.createElement("span");
-      nameSpan.textContent = name.split("/").pop();
-      nameSpan.className = "text-sm truncate w-[70%]";
-
-      const delBtn = document.createElement("button");
-      delBtn.textContent = "🗑";
-      delBtn.className =
-        "bg-red-500 text-white text-sm px-2 py-1 rounded hover:bg-red-600";
-      delBtn.onclick = (e) => {
-        e.stopPropagation();
-        deleteImage(name);
-      };
-
-      footer.appendChild(nameSpan);
-      footer.appendChild(delBtn);
-
-      card.appendChild(img);
-      card.appendChild(footer);
-      gallery.appendChild(card);
+    if (!data.length) {
+        gallery.innerHTML = `<p>No images in this album.</p>`;
+        return;
     }
-  } catch (err) {
-    console.error("Error loading images:", err);
-  }
+
+    data.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "imgItem";
+        div.innerHTML = `
+            <img src="${item.url}" />
+            <p>${item.caption || ""}</p>
+            <p><small>${(item.tags || []).join(", ")}</small></p>
+        `;
+        gallery.appendChild(div);
+    });
 }
 
 
-// === Upload Image ===
+// =================== UPLOAD IMAGE ===================
 async function uploadImage() {
-  if (!currentAlbum) return alert("Select an album first");
+    const file = fileInput.files[0];
+    let album = albumSelect.value;
 
-  const fileInput = document.getElementById("fileInput");
-  if (!fileInput.files.length) return alert("Select a file");
+    if (!file) return alert("Select a file!");
 
-  const file = fileInput.files[0];
-  const fileName = `${currentAlbum}/${file.name}`;
-  const uploadUrl = `${blobUrl}/${containerName}/${fileName}?${sasToken}`;
+    // If user wants new album
+    if (newAlbumInput.value.trim()) {
+        album = newAlbumInput.value.trim();
+        let opt = document.createElement("option");
+        opt.value = album;
+        opt.textContent = album;
+        albumSelect.appendChild(opt);
+        albumSelect.value = album;
+    }
 
-  const res = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: { "x-ms-blob-type": "BlockBlob" },
-    body: file
-  });
+    const blobName = `${file.name}`;
+    const uploadUrl = `${blobUrl}/${containerName}/${album}/${blobName}?${sasToken}`;
 
-  if (res.ok) {
-    fileInput.value = "";
-    loadImages();
-  } else {
-    alert("Upload failed");
-  }
+    console.log("Uploading →", uploadUrl);
+
+    const res = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "x-ms-blob-type": "BlockBlob" },
+        body: file
+    });
+
+    if (!res.ok) return alert("Upload failed!");
+
+    alert("Uploaded ✅ — AI analyzing...");
+
+    await fetch(ANALYZE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ album, name: blobName })
+    });
+
+    alert("Added + Tagged ✅");
+    loadAlbum();
 }
 
 
-// === Delete Image ===
-async function deleteImage(name) {
-  if (!confirm("Delete this image?")) return;
+// =================== INIT ===================
+uploadBtn.onclick = uploadImage;
+albumSelect.onchange = loadAlbum;
 
-  const delUrl = `${blobUrl}/${containerName}/${name}?${sasToken}`;
-  await fetch(delUrl, { method: "DELETE" });
-  loadImages();
-}
-
-
-// === Preview Modal ===
-function openPreview(url) {
-  document.getElementById("previewImg").src = url;
-  document.getElementById("previewModal").classList.remove("hidden");
-}
-function closePreview() {
-  document.getElementById("previewModal").classList.add("hidden");
-}
-
-
-// === Init ===
-loadAlbums();
+loadAlbum();
